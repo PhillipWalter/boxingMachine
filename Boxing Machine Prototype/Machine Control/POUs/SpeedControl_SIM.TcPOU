@@ -1,0 +1,327 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="SpeedControl_SIM" Id="{0a562722-591e-4057-8289-46035a92b04b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM SpeedControl_SIM
+VAR
+	
+//Boolean values for determining the speed at which the motors are running in a controlled and called fashion.
+	bEncCallMade1   	: BOOL := FALSE;
+	bEncCallMade2   	: BOOL := FALSE;
+	bEncCallMade3   	: BOOL := FALSE;
+	bEncCallMade4   	: BOOL := FALSE;
+	bMotor1Running  	: BOOL := GVL_VAR.bMotor1Running;
+	bMotor2Running  	: BOOL := GVL_VAR.bMotor2Running;
+	bMotor3Running  	: BOOL := GVL_VAR.bMotor3Running;
+	bMotor4Running  	: BOOL := GVL_VAR.bMotor4Running;
+	bProgramStarted 	: BOOL := GVL_VAR.bStartButton;
+	bMotorsHaveStarted  : BOOL := GVL_VAR.bMotorsHaveStarted;
+	bFirstReading		: BOOL;
+	bSpeedCheck1Pass	: BOOL;
+	bSpeedCheck2Pass	: BOOL;
+	bSpeedCheck3Pass	: BOOL;
+	bSpeedCheck4Pass	: BOOL;
+	
+//Global Variables into which the encoder values will be stored.
+	iEncoder1Val 		: INT := GVL_VAR.diMotorEncoder1;
+	iEncoder2Val 		: INT := GVL_VAR.diMotorEncoder2;
+	iEncoder3Val 		: INT := GVL_VAR.diMotorEncoder3;
+	iEncoder4Val 		: INT := GVL_VAR.diMotorEncoder4;
+	iEncoderPPR			: INT := GVL_VAR.iEncoderPPR;
+	
+//Hysteresis of the encoders...
+	iEncoder1Hys 		: INT := GVL_VAR.diEncoder1Hysteresis;
+	iEncoder2Hys 		: INT := GVL_VAR.diEncoder2Hysteresis;
+	iEncoder3Hys 		: INT := GVL_VAR.diEncoder3Hysteresis;
+	iEncoder4Hys 		: INT := GVL_VAR.diEncoder4Hysteresis;
+	
+//Retrieve the speed settings for the scope of the flow and assign them to local variable names...
+	iGlobalSpeedSetting : INT := GVL_VAR.iSetGlobalSpeed;
+	iMotor1Speed 		: INT := GVL_VAR.iMotor1GlobalSpeed;
+	iMotor2Speed 		: INT := GVL_VAR.iMotor2GlobalSpeed;
+	iMotor3Speed 		: INT := GVL_VAR.iMotor3GlobalSpeed;
+	iMotor4Speed 		: INT := GVL_VAR.iMotor4GlobalSpeed;
+	
+//This is primarily used for storing the encoder values and comparisons between motor speeds...
+	iMotor1SpeedA		: INT := 0;
+	iMotor2SpeedA		: INT := 0;
+	iMotor3SpeedA		: INT := 0;
+	iMotor4SpeedA		: INT := 0;
+	
+//Timer functions for controlling the encoder value polling
+	tEncCallMadeTimer 	: TON;
+	timerDone 			: BOOL := FALSE;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Simulated Program*)
+//This is for determining the speed of the motors and displaying it on the UI. It is also
+// responsible for making sure that all of the motors are indeed running the same speed through measurement.
+//This measurement is then taken and it adjusts the speed of the motors accordingly (just for the sake of testing the logic of course)
+//If after a certain amount of adjustments the speed still seems unbalanced, THEN the machine will switch off the motor controls and flag a product JAM.
+//Give the command to start the motors
+
+IF bProgramStarted THEN
+	GVL_VAR.bStartMotor1 := TRUE;
+	GVL_VAR.bStartMotor2 := TRUE;
+	GVL_VAR.bStartMotor3 := TRUE;
+	GVL_VAR.bStartMotor4 := TRUE;
+ELSE 
+	GVL_VAR.bStartMotor1 := FALSE;
+	GVL_VAR.bStartMotor2 := FALSE;
+	GVL_VAR.bStartMotor3 := FALSE;
+	GVL_VAR.bStartMotor4 := FALSE;
+END_IF
+
+//Confirm whether or not the motors have started...
+IF bMotor1Running AND bMotor2Running AND bMotor3Running AND bMotor4Running THEN
+	//Set the global variable GVL_VAR.bMotorsHaveStarted to TRUE if ALL of the run feedback signals are TRUE
+	GVL_VAR.bMotorsHaveStarted := TRUE;
+ELSE
+	//Set the global variable GVL_VAR.bMotorsHaveStarted to FALSE if NOT ALL of the run feedback signals are TRUE
+	GVL_VAR.bMotorsHaveStarted := FALSE;
+END_IF
+
+WHILE bMotorsHaveStarted DO 
+	//Start the timer for orderky data calls
+	IF NOT timerDone THEN
+		tEncCallMadeTimer(IN := TRUE, PT:=T#1000MS, Q=> timerDone);
+	
+		IF NOT bEncCallMade1 AND tEncCallMadeTimer.ET = T#250MS  THEN
+			iMotor1Speed := iEncoder1Val - iEncoder1Hys;
+			iMotor1SpeedA := iEncoder1Val;
+			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
+			bEncCallMade1 := TRUE;
+			//now the iMotor1Speed Can be formatted and made available to the UI
+		END_IF
+		
+		IF NOT bEncCallMade2 AND tEncCallMadeTimer.ET = T#500MS  THEN
+			iMotor2Speed := iEncoder2Val - iEncoder3Hys;
+			iMotor2SpeedA := iEncoder2Val;
+			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
+			bEncCallMade2 := TRUE;
+			//now the iMotor2Speed Can be formatted and made available to the UI
+		END_IF
+	
+		IF NOT bEncCallMade3 AND tEncCallMadeTimer.ET = T#750MS  THEN
+			iMotor3Speed := iEncoder3Val - iEncoder3Hys;
+			iMotor3SpeedA := iEncoder3Val;
+			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
+			bEncCallMade3 := TRUE;
+			//now the iMotor3Speed Can be formatted and made available to the UI
+		END_IF
+	
+		IF NOT bEncCallMade4 AND tEncCallMadeTimer.ET = T#1000MS  THEN
+			iMotor4Speed := iEncoder4Val - iEncoder4Hys;
+			iMotor4SpeedA := iEncoder4Val;
+			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
+			bEncCallMade4 := TRUE;
+			//now the iMotor4Speed Can be formatted and made available to the UI
+		END_IF
+
+		IF timerDone AND bEncCallMade4 THEN
+			bEncCallMade1 := FALSE;
+			bEncCallMade2 := FALSE;
+			bEncCallMade3 := FALSE;
+			bEncCallMade4 := FALSE;
+			tEncCallMadeTimer.IN := FALSE;
+			tEncCallMadeTimer.Q := FALSE;
+			bFirstReading := TRUE;
+			
+		END_IF
+	END_IF
+
+
+	
+END_WHILE
+//Reference in essense a PID controller for all of these motors
+//Compare all of the motor's speeds with the main speed setting
+WHILE bFirstReading DO
+	
+	IF iMotor1Speed = iGlobalSpeedSetting THEN
+		bSpeedCheck1Pass := TRUE;
+		GVL_VAR.bIncreaseSpeed1 := FALSE;
+		GVL_VAR.bDecreaseSpeed1 := FALSE;
+	ELSE IF iMotor1Speed > iGlobalSpeedSetting THEN
+			//DECREASE motor speed!
+			bSpeedCheck1Pass := FALSE;
+			GVL_VAR.bDecreaseSpeed1 := TRUE;
+			
+		ELSE //INCREASE motor speed!
+			bSpeedCheck1Pass := FALSE;
+			GVL_VAR.bIncreaseSpeed1 := TRUE;
+		END_IF
+	END_IF
+	
+	IF iMotor2Speed = iGlobalSpeedSetting THEN
+		bSpeedCheck2Pass := TRUE;
+		GVL_VAR.bIncreaseSpeed2 := FALSE;
+		GVL_VAR.bDecreaseSpeed2 := FALSE;
+
+	ELSE IF iMotor2Speed > iGlobalSpeedSetting THEN
+		//DECREASE motor speed!
+		bSpeedCheck2Pass := FALSE;
+		GVL_VAR.bDecreaseSpeed2 := TRUE;
+		
+		ELSE //INCREASE motor speed!
+			bSpeedCheck2Pass := FALSE;
+			GVL_VAR.bIncreaseSpeed2 := TRUE;
+		END_IF
+	END_IF
+	
+	IF iMotor3Speed = iGlobalSpeedSetting THEN
+		bSpeedCheck3Pass := TRUE;
+		GVL_VAR.bIncreaseSpeed3 := FALSE;
+		GVL_VAR.bDecreaseSpeed3 := FALSE;
+	
+	ELSE IF iMotor3Speed > iGlobalSpeedSetting THEN
+		//DECREASE motor speed!
+		bSpeedCheck3Pass := FALSE;
+		GVL_VAR.bDecreaseSpeed3 := TRUE;
+		
+		ELSE //INCREASE motor speed!
+			bSpeedCheck3Pass := FALSE;
+			GVL_VAR.bIncreaseSpeed3 := TRUE;
+		END_IF
+	
+	END_IF
+	
+	
+	IF iMotor4Speed = iGlobalSpeedSetting THEN
+		bSpeedCheck4Pass := TRUE;
+		GVL_VAR.bIncreaseSpeed4 := FALSE;
+		GVL_VAR.bDecreaseSpeed4 := FALSE;
+		
+	ELSE IF iMotor4Speed > iGlobalSpeedSetting THEN
+		//DECREASE motor speed!
+		bSpeedCheck4Pass := FALSE;
+		GVL_VAR.bDecreaseSpeed4 := TRUE;
+		
+		ELSE //INCREASE motor speed!
+			bSpeedCheck4Pass := FALSE;
+			GVL_VAR.bIncreaseSpeed4 := TRUE;
+		END_IF
+	
+	END_IF
+
+	
+END_WHILE
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="SpeedControl_SIM">
+      <LineId Id="5" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="138" Count="2" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="141" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="82" Count="5" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="89" Count="2" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="68" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="55" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="119" Count="0" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="103" Count="2" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="123" Count="0" />
+      <LineId Id="106" Count="1" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="108" Count="2" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="111" Count="1" />
+      <LineId Id="57" Count="0" />
+      <LineId Id="113" Count="2" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="125" Count="0" />
+      <LineId Id="116" Count="1" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="118" Count="0" />
+      <LineId Id="56" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="131" Count="2" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="127" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="54" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="47" Count="0" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="292" Count="1" />
+      <LineId Id="242" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="248" Count="0" />
+      <LineId Id="294" Count="0" />
+      <LineId Id="306" Count="0" />
+      <LineId Id="249" Count="1" />
+      <LineId Id="295" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="251" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="234" Count="1" />
+      <LineId Id="296" Count="1" />
+      <LineId Id="233" Count="0" />
+      <LineId Id="254" Count="2" />
+      <LineId Id="298" Count="0" />
+      <LineId Id="300" Count="0" />
+      <LineId Id="257" Count="1" />
+      <LineId Id="299" Count="0" />
+      <LineId Id="259" Count="0" />
+      <LineId Id="253" Count="0" />
+      <LineId Id="252" Count="0" />
+      <LineId Id="237" Count="1" />
+      <LineId Id="307" Count="1" />
+      <LineId Id="236" Count="0" />
+      <LineId Id="272" Count="2" />
+      <LineId Id="309" Count="0" />
+      <LineId Id="302" Count="0" />
+      <LineId Id="275" Count="1" />
+      <LineId Id="310" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="271" Count="0" />
+      <LineId Id="270" Count="0" />
+      <LineId Id="268" Count="1" />
+      <LineId Id="240" Count="1" />
+      <LineId Id="311" Count="2" />
+      <LineId Id="262" Count="2" />
+      <LineId Id="314" Count="0" />
+      <LineId Id="303" Count="0" />
+      <LineId Id="265" Count="1" />
+      <LineId Id="315" Count="0" />
+      <LineId Id="267" Count="0" />
+      <LineId Id="239" Count="0" />
+      <LineId Id="261" Count="0" />
+      <LineId Id="304" Count="1" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="44" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

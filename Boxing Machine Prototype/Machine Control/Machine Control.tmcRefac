@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Refactors>
+  <Renames>
+    <RenamedType>
+      <Type guid="0a562722-591e-4057-8289-46035a92b04b">ENCODER_SIM</Type>
+      <From>ENCODER_SIM</From>
+      <To>SpeedControl_SIM</To>
+    </RenamedType>
+  </Renames>
+</Refactors>

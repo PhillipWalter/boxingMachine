@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="MAIN" Id="{61722ceb-acc8-4a94-a17e-a2b60d2331d1}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+
+	nSwitchCtrl		: BOOL := TRUE;
+	nRotateUpper	: WORD := 16#8000;
+	nRotateLower	: WORD := 16#01;
+	
+	bEL1004_CH4 AT%I*	: BOOL;
+	
+	nEL2008_value AT%Q*	: BYTE;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Program Example*)
+
+IF bEL1004_CH4 THEN
+	IF nSwitchCtrl THEN
+		nSwitchCtrl := FALSE;
+		nRotateLower := ROL(nRotateUpper, 2);
+		nRotateUpper := ROR(nRotateUpper, 2);
+		nEL2008_value := WORD_TO_BYTE(nRotateLower OR nRotateUpper);
+	END_IF
+ELSE
+		IF NOT nSwitchCtrl THEN
+			nSwitchCtrl := TRUE;
+		END_IF
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="42" Count="12" />
+      <LineId Id="28" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

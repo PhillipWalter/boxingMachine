@@ -1,0 +1,102 @@
+<?xml version="1.0"?>
+<TcSmProject xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://www.beckhoff.com/schemas/2012/07/TcSmProject" TcSmVersion="1.0" TcVersion="3.1.4024.47">
+	<DataTypes>
+		<DataType>
+			<Name GUID="{18071995-0000-0000-0000-00000000003D}" TcBaseType="true" HideType="true">USINTARR6</Name>
+			<BitSize>48</BitSize>
+			<BaseType GUID="{18071995-0000-0000-0000-000000000002}">USINT</BaseType>
+			<ArrayInfo>
+				<LBound>0</LBound>
+				<Elements>6</Elements>
+			</ArrayInfo>
+		</DataType>
+	</DataTypes>
+	<Project ProjectGUID="{FE80B8FE-51C2-4089-BE11-9BF53D281CDF}" Target64Bit="true" ShowHideConfigurations="#x106">
+		<System>
+			<Tasks>
+				<Task Id="3" Priority="20" CycleTime="100000" AmsPort="350" AdtTasks="true">
+					<Name>PlcTask</Name>
+				</Task>
+			</Tasks>
+		</System>
+		<Plc>
+			<Project GUID="{D47629D0-FB00-40E4-AF16-65200F4573D9}" Name="Machine Control" PrjFilePath="Machine Control\Machine Control.plcproj" TmcFilePath="Machine Control\Machine Control.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcHash="{F5E2BEED-87D9-A2CD-14D2-39CC5990FE19}">
+					<Name>Machine Control Instance</Name>
+					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
+					<Vars VarGrpType="1">
+						<Name>PlcTask Inputs</Name>
+						<Var>
+							<Name>MAIN.bEL1004_CH4</Name>
+							<Type>BOOL</Type>
+						</Var>
+					</Vars>
+					<Vars VarGrpType="2" AreaNo="1">
+						<Name>PlcTask Outputs</Name>
+						<Var>
+							<Name>MAIN.nEL2008_value</Name>
+							<Type>BYTE</Type>
+						</Var>
+					</Vars>
+					<Contexts>
+						<Context>
+							<Id>0</Id>
+							<Name>PlcTask</Name>
+							<ManualConfig>
+								<OTCID>#x02010030</OTCID>
+							</ManualConfig>
+							<Priority>20</Priority>
+							<CycleTime>10000000</CycleTime>
+						</Context>
+					</Contexts>
+					<TaskPouOids>
+						<TaskPouOid Prio="20" OTCID="#x08502001"/>
+					</TaskPouOids>
+				</Instance>
+			</Project>
+		</Plc>
+		<Io>
+			<Device Id="1" CreateSymbols="true" DevType="130" AmsNetId="192.168.0.15.2.255" RemoteName="Device 1 (EtherCAT Slave)">
+				<Name>Device 1 (EtherCAT Slave)</Name>
+				<AddressInfo>
+					<Ccat>
+						<Address>0</Address>
+						<Offset>0</Offset>
+						<Size>0</Size>
+						<BaseAddr>0</BaseAddr>
+						<BusNo>0</BusNo>
+						<SlotNo>0</SlotNo>
+					</Ccat>
+				</AddressInfo>
+				<Vars VarGrpType="1" InsertType="1">
+					<Name>Inputs</Name>
+				</Vars>
+				<Vars VarGrpType="2" InsertType="1">
+					<Name>Outputs</Name>
+				</Vars>
+				<Vars VarGrpType="3">
+					<Name>InfoData</Name>
+					<Var>
+						<Name>State</Name>
+						<Comment><![CDATA[0x___1 = Slave is in 'INIT' state
+0x___2 = Slave is in 'PREOP' state
+0x___4 = Slave is in 'SAFEOP' state
+0x___8 = Slave is in 'OP' state]]></Comment>
+						<Type>UINT</Type>
+						<InOut>0</InOut>
+					</Var>
+					<Var>
+						<Name>NetId</Name>
+						<Type GUID="{18071995-0000-0000-0000-00000000003D}">USINTARR6</Type>
+						<BitOffs>16</BitOffs>
+						<InOut>0</InOut>
+					</Var>
+				</Vars>
+				<Image Id="1" AddrType="1" ImageType="2">
+					<Name>Image</Name>
+				</Image>
+				<EtherCATSlave/>
+			</Device>
+		</Io>
+	</Project>
+</TcSmProject>

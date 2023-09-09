@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="Motor_Speed_PID" Id="{cafd4b28-a32e-4464-93f6-1e2bf25fb672}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Motor_Speed_PID
+VAR
+	//Global Variables Assignments
+	//Increase or decrease the speed depending on the booleans set by the SpeedControl POU
+	bIncreaseSpeed1 : BOOL := GVL_VAR.bIncreaseSpeed1;
+	bDecreaseSpeed1 : BOOL := GVL_VAR.bDecreaseSpeed1;
+	bIncreaseSpeed2 : BOOL := GVL_VAR.bIncreaseSpeed2;
+	bDecreaseSpeed2 : BOOL := GVL_VAR.bDecreaseSpeed2;
+	bIncreaseSpeed3 : BOOL := GVL_VAR.bIncreaseSpeed3;
+	bDecreaseSpeed3 : BOOL := GVL_VAR.bDecreaseSpeed3;
+	bIncreaseSpeed4 : BOOL := GVL_VAR.bIncreaseSpeed4;
+	bDecreaseSpeed4 : BOOL := GVL_VAR.bDecreaseSpeed4;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[]]></ST>
+    </Implementation>
+    <LineIds Name="Motor_Speed_PID">
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

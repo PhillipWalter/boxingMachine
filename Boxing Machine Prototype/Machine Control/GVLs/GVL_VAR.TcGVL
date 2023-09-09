@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <GVL Name="GVL_VAR" Id="{6c5bd0a6-c08c-4255-89d4-a37828710c98}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+VAR_GLOBAL
+	
+	//integer variables
+	//The values of the rotary encoders are stored into these variables
+	diMotorEncoder1 	 	: INT;
+	diMotorEncoder2 	 	: INT;
+	diMotorEncoder3 	 	: INT;
+	diMotorEncoder4 	 	: INT;
+	
+	//Setting the PPR of the encoders used
+	iEncoderPPR : INT;
+	
+	//Speed is calculated after each scan of encoder bits and stored into these variables
+	//The values are initialized in order to give the UI something to work with after immediate bootup
+	diEncoder1ProdSpeed  	: INT := 0;
+	diEncoder2ProdSpeed  	: INT := 0;
+	diEncoder3ProdSpeed  	: INT := 0;
+	diEncoder4ProdSpeed  	: INT := 0;
+	
+	//The global speed of motors and overall set-speed
+	iMotor1GlobalSpeed   	: INT := 0;
+	iMotor2GlobalSpeed   	: INT := 0;
+	iMotor3GlobalSpeed   	: INT := 0;
+	iMotor4GlobalSpeed   	: INT := 0;
+	iSetGlobalSpeed      	: INT := 0;
+	
+	//An hysteresis is important in order to allow micoradjustments in terms of tolerance
+	//The values are initialized in order to give the UI something to work with after immediate bootup
+	diEncoder1Hysteresis 	: INT := 0;
+	diEncoder2Hysteresis 	: INT := 0;
+	diEncoder3Hysteresis 	: INT := 0;
+	diEncoder4Hysteresis 	: INT := 0;
+	
+	//Temperature of gluepot/optical in raw data if anaolgue is used 0-4028 depending on the resolution
+	//The values are initialized in order to give the UI something to work with after immediate bootup
+	iGlueTemperatureRaw  	: INT := 0;
+	iRawBoardOptic1 	 	: INT := 0;
+	iRawBoardOptic2  	 	: INT := 0;
+	iRawBoardOptic3  	 	: INT := 0;
+	iRawBoardOptic4 	 	: INT := 0;
+	
+	
+	//boolean variables
+	//As far as feasible the booleans will be initialized
+	bStartButton 		 	: BOOL := FALSE;
+	bStopButton 		 	: BOOL := FALSE;
+	bPauseButton 		 	: BOOL := FALSE;
+	//System parameters from the main OS/UI
+	bSysParamExec 		 	: BOOL := FALSE;
+	bSysParamHold 		 	: BOOL := FALSE;
+	bSysParamReset 		 	: BOOL := FALSE;
+	bSysParam1 			 	: BOOL := FALSE;
+	bSysParam2 			 	: BOOL := FALSE;
+	//Some IO information about the motor's state
+	bMotor1Running 		 	: BOOL :=FALSE;
+	bMotor2Running 		 	: BOOL := FALSE;
+	bMotor3Running 		 	: BOOL := FALSE;
+	bMotor4Running 		 	: BOOL := FALSE;
+	//Gluepot Boolean indicators
+	bGlueReady 			 	: BOOL := FALSE;
+	
+	//Output Section for controlling the COILS with boolean values
+	bStartMotor1			: BOOL := FALSE;
+	bStartMotor2			: BOOL := FALSE;
+	bStartMotor3			: BOOL := FALSE;
+	bStartMotor4			: BOOL := FALSE;
+	bMotorsHaveStarted		: BOOL := FALSE;
+	
+	//Bolleans for controlling the carious motor's speed:
+	//These variables are called again in the PID controller POU Motor_Speed_PID
+	bIncreaseSpeed1 : BOOL := FALSE;
+	bDecreaseSpeed1 : BOOL := FALSE;
+	bIncreaseSpeed2 : BOOL := FALSE;
+	bDecreaseSpeed2 : BOOL := FALSE;
+	bIncreaseSpeed3 : BOOL := FALSE;
+	bDecreaseSpeed3 : BOOL := FALSE;
+	bIncreaseSpeed4 : BOOL := FALSE;
+	bDecreaseSpeed4 : BOOL := FALSE;
+
+//Real variables
+	//Temperature of glue pot in degrees celsius
+	//The values are initialized in order to give the UI something to work with after immediate bootup
+	fGlueTemperature 	 	: REAL := 0.0;
+	fBoardOptic1 		 	: REAL := 0.0;
+	fBoardOptic2 		 	: REAL := 0.0;
+	fBoardOptic3 		 	: REAL := 0.0;
+	fBoardOptic4 		 	: REAL := 0.0;
+	fMaterialDistanceMeter 	: REAL := 0.0;
+	fMotor1Thermal 			: REAL := 0.0;
+	fMotor2Thermal 			: REAL := 0.0;
+	fMotor3Thermal 			: REAL := 0.0;
+	fMotor4Thermal 			: REAL := 0.0;
+	
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>
