@@ -5,6 +5,8 @@
 VAR
 	//Global Variables Assignments
 	//Increase or decrease the speed depending on the booleans set by the SpeedControl POU
+	//The entire existance of this instance of code assumes no common reference of speed 
+	//Basically no servo-motors with trusted speeds are used in the process...
 	bIncreaseSpeed1 : BOOL := GVL_VAR.bIncreaseSpeed1;
 	bDecreaseSpeed1 : BOOL := GVL_VAR.bDecreaseSpeed1;
 	bIncreaseSpeed2 : BOOL := GVL_VAR.bIncreaseSpeed2;
@@ -14,13 +16,183 @@ VAR
 	bIncreaseSpeed4 : BOOL := GVL_VAR.bIncreaseSpeed4;
 	bDecreaseSpeed4 : BOOL := GVL_VAR.bDecreaseSpeed4;
 	
+	//The motor VFD controls have to be referenced here as well... This may be done via some etherCAT comms
+	
+	//Global speed setting for hte reference of the PID
+	iSetGlobalSpeed : INT := GVL_VAR.iSetGlobalSpeed;
+	fKp : REAL := 0; //Controller amplification, this is the value sent to the motor controller
+	//These are the outputs of the Proportional function to be sent to the drives after encoder references.
+	fMotor1AdjustFactor : REAL := GVL_VAR.fMotor1AdjustFactor;
+	fMotor2AdjustFactor : REAL := GVL_VAR.fMotor2AdjustFactor;
+	fMotor3AdjustFactor : REAL := GVL_VAR.fMotor3AdjustFactor;
+	fMotor4AdjustFactor : REAL := GVL_VAR.fMotor4AdjustFactor;
+
+	
 END_VAR
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[]]></ST>
+      <ST><![CDATA[//Only allow the activation of the speed control segment of the program if the motors have actually started:
+
+WHILE GVL_VAR.bMotorsHaveStarted DO
+	
+	//Run through the scans to verify whether or not the logic must start:
+	IF bIncreaseSpeed1 OR bDecreaseSpeed1 THEN
+	
+															//This clause is to keep the motors from going in reverse
+		IF GVL_VAR.iMotor1GlobalSpeed < iSetGlobalSpeed AND GVL_VAR.iMotor1GlobalSpeed > 0.0 THEN
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed
+		//determine the factor by which the speed should be increased
+		
+		//The formula for Proportional control is: P = Kp * (Setpoint - Feedback)
+		//Or in this case: GVL_VAR.iMotor1GlobalSpeed := fKp * (GVL_VAR.iSetGlobalSpeed - GVl_VAR.iMotor1GlobalSpeed);
+		//So it will look like this (remember this automatically returns a REAL number (Fractional/Decimal)):
+		//If you wish to turn a REAL value into an INT value: INT_Value := TRUNC(REAL_Value);
+		fMotor1AdjustFactor := fKp * (iSetGlobalSpeed - GVL_VAR.iMotor1GlobalSpeed);	
+		//Remember to include a function for keeping the hysteresis in mind.
+		GVL_VAR.fMotor1AdjustFactor := fMotor1AdjustFactor - GVL_VAR.fMotor1Hysteresis;
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed	
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed1 := FALSE;
+		GVL_VAR.bIncreaseSpeed1 := FALSE;
+		ELSE
+		//post a speed reference error
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed1 := FALSE;
+		GVL_VAR.bIncreaseSpeed1 := FALSE;			
+		 
+			
+		END_IF
+		
+	END_IF
+	
+		//Run through the scans to verify whether or not the logic must start:
+	IF bIncreaseSpeed2 OR bDecreaseSpeed2 THEN
+	
+		
+		IF GVL_VAR.iMotor1GlobalSpeed < iSetGlobalSpeed AND GVL_VAR.iMotor2GlobalSpeed > 0.0 THEN
+		fMotor2AdjustFactor := fKp * (iSetGlobalSpeed - GVL_VAR.iMotor2GlobalSpeed);
+		GVL_VAR.fMotor2AdjustFactor := fMotor2AdjustFactor - GVL_VAR.fMotor2Hysteresis;
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed	
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed2 := FALSE;
+		GVL_VAR.bIncreaseSpeed2 := FALSE;
+		ELSE
+		//post a speed reference error
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed2 := FALSE;
+		GVL_VAR.bIncreaseSpeed2 := FALSE;
+		END_IF
+		
+	END_IF
+	
+		//Run through the scans to verify whether or not the logic must start:
+	IF bIncreaseSpeed3 OR bDecreaseSpeed3 THEN
+	
+		
+		IF GVL_VAR.iMotor1GlobalSpeed < iSetGlobalSpeed AND GVL_VAR.iMotor3GlobalSpeed > 0.0 THEN
+		fMotor3AdjustFactor := fKp * (iSetGlobalSpeed - GVL_VAR.iMotor3GlobalSpeed);
+		GVL_VAR.fMotor3AdjustFactor := fMotor3AdjustFactor - GVL_VAR.fMotor3Hysteresis;
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed	
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed3 := FALSE;
+		GVL_VAR.bIncreaseSpeed3 := FALSE;
+		ELSE//post a speed reference error
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed3 := FALSE;
+		GVL_VAR.bIncreaseSpeed3 := FALSE;
+		END_IF
+		
+	END_IF
+	
+		//Run through the scans to verify whether or not the logic must start:
+	IF bIncreaseSpeed4 OR bDecreaseSpeed4 THEN
+	
+		
+		IF GVL_VAR.iMotor1GlobalSpeed < iSetGlobalSpeed AND GVL_VAR.iMotor4GlobalSpeed > 0.0 THEN
+		fMotor4AdjustFactor := fKp * (iSetGlobalSpeed - GVL_VAR.iMotor4GlobalSpeed);
+		GVL_VAR.fMotor4AdjustFactor := fMotor4AdjustFactor - GVL_VAR.fMotor4Hysteresis;
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed	
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed4 := FALSE;
+		GVL_VAR.bIncreaseSpeed4 := FALSE;
+		ELSE//post a speed reference error
+		//Reset the booleans responsible for activating this function
+		GVL_VAR.bDecreaseSpeed4 := FALSE;
+		GVL_VAR.bIncreaseSpeed4 := FALSE;
+		END_IF
+		
+	END_IF
+	
+
+END_WHILE]]></ST>
     </Implementation>
     <LineIds Name="Motor_Speed_PID">
+      <LineId Id="32" Count="1" />
       <LineId Id="5" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="34" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="131" Count="2" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="134" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="136" Count="0" />
+      <LineId Id="179" Count="0" />
+      <LineId Id="177" Count="0" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="199" Count="1" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="50" Count="0" />
+      <LineId Id="49" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="64" Count="4" />
+      <LineId Id="174" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="203" Count="1" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="205" Count="1" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="72" Count="2" />
+      <LineId Id="85" Count="0" />
+      <LineId Id="87" Count="4" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="181" Count="0" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="208" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="210" Count="1" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="95" Count="2" />
+      <LineId Id="108" Count="0" />
+      <LineId Id="110" Count="4" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="212" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="214" Count="1" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="118" Count="2" />
+      <LineId Id="48" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="28" Count="0" />
     </LineIds>
   </POU>
 </TcPlcObject>

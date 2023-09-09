@@ -12,7 +12,7 @@ VAR_GLOBAL
 	diMotorEncoder4 	 	: INT;
 	
 	//Setting the PPR of the encoders used
-	iEncoderPPR : INT;
+	iEncoderPPR 			: INT;
 	
 	//Speed is calculated after each scan of encoder bits and stored into these variables
 	//The values are initialized in order to give the UI something to work with after immediate bootup
@@ -27,6 +27,7 @@ VAR_GLOBAL
 	iMotor3GlobalSpeed   	: INT := 0;
 	iMotor4GlobalSpeed   	: INT := 0;
 	iSetGlobalSpeed      	: INT := 0;
+	iGlobalMinimumFaultSpeed: INT := 40; // This value will be user defined
 	
 	//An hysteresis is important in order to allow micoradjustments in terms of tolerance
 	//The values are initialized in order to give the UI something to work with after immediate bootup
@@ -72,14 +73,14 @@ VAR_GLOBAL
 	
 	//Bolleans for controlling the carious motor's speed:
 	//These variables are called again in the PID controller POU Motor_Speed_PID
-	bIncreaseSpeed1 : BOOL := FALSE;
-	bDecreaseSpeed1 : BOOL := FALSE;
-	bIncreaseSpeed2 : BOOL := FALSE;
-	bDecreaseSpeed2 : BOOL := FALSE;
-	bIncreaseSpeed3 : BOOL := FALSE;
-	bDecreaseSpeed3 : BOOL := FALSE;
-	bIncreaseSpeed4 : BOOL := FALSE;
-	bDecreaseSpeed4 : BOOL := FALSE;
+	bIncreaseSpeed1 		: BOOL := FALSE;
+	bDecreaseSpeed1 		: BOOL := FALSE;
+	bIncreaseSpeed2 		: BOOL := FALSE;
+	bDecreaseSpeed2 		: BOOL := FALSE;
+	bIncreaseSpeed3 		: BOOL := FALSE;
+	bDecreaseSpeed3 		: BOOL := FALSE;
+	bIncreaseSpeed4 		: BOOL := FALSE;
+	bDecreaseSpeed4 		: BOOL := FALSE;
 
 //Real variables
 	//Temperature of glue pot in degrees celsius
@@ -94,6 +95,17 @@ VAR_GLOBAL
 	fMotor2Thermal 			: REAL := 0.0;
 	fMotor3Thermal 			: REAL := 0.0;
 	fMotor4Thermal 			: REAL := 0.0;
+	
+	//REAL values for adjusting the motor speeds after having gone through the Motor_Speed_PID POU
+	fMotor1AdjustFactor 	: REAL;
+	fMotor2AdjustFactor 	: REAL;
+	fMotor3AdjustFactor 	: REAL;
+	fMotor4AdjustFactor 	: REAL;
+	//REAL value for the hysteresis of the motors speed reference provided to the drives from the Motor_Speed_PID POU
+	fMotor1Hysteresis		: REAL;
+	fMotor2Hysteresis		: REAL;
+	fMotor3Hysteresis		: REAL;
+	fMotor4Hysteresis		: REAL;
 	
 	
 END_VAR]]></Declaration>

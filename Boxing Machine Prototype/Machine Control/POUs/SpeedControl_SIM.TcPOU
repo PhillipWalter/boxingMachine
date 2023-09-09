@@ -84,9 +84,9 @@ END_IF
 WHILE bMotorsHaveStarted DO 
 	//Start the timer for orderky data calls
 	IF NOT timerDone THEN
-		tEncCallMadeTimer(IN := TRUE, PT:=T#1000MS, Q=> timerDone);
+		tEncCallMadeTimer(IN := TRUE, PT:=T#100MS, Q=> timerDone);
 	
-		IF NOT bEncCallMade1 AND tEncCallMadeTimer.ET = T#250MS  THEN
+		IF NOT bEncCallMade1 AND tEncCallMadeTimer.ET = T#25MS  THEN
 			iMotor1Speed := iEncoder1Val - iEncoder1Hys;
 			iMotor1SpeedA := iEncoder1Val;
 			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
@@ -94,7 +94,7 @@ WHILE bMotorsHaveStarted DO
 			//now the iMotor1Speed Can be formatted and made available to the UI
 		END_IF
 		
-		IF NOT bEncCallMade2 AND tEncCallMadeTimer.ET = T#500MS  THEN
+		IF NOT bEncCallMade2 AND tEncCallMadeTimer.ET = T#50MS  THEN
 			iMotor2Speed := iEncoder2Val - iEncoder3Hys;
 			iMotor2SpeedA := iEncoder2Val;
 			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
@@ -102,7 +102,7 @@ WHILE bMotorsHaveStarted DO
 			//now the iMotor2Speed Can be formatted and made available to the UI
 		END_IF
 	
-		IF NOT bEncCallMade3 AND tEncCallMadeTimer.ET = T#750MS  THEN
+		IF NOT bEncCallMade3 AND tEncCallMadeTimer.ET = T#75MS  THEN
 			iMotor3Speed := iEncoder3Val - iEncoder3Hys;
 			iMotor3SpeedA := iEncoder3Val;
 			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
@@ -110,7 +110,7 @@ WHILE bMotorsHaveStarted DO
 			//now the iMotor3Speed Can be formatted and made available to the UI
 		END_IF
 	
-		IF NOT bEncCallMade4 AND tEncCallMadeTimer.ET = T#1000MS  THEN
+		IF NOT bEncCallMade4 AND tEncCallMadeTimer.ET = T#100MS  THEN
 			iMotor4Speed := iEncoder4Val - iEncoder4Hys;
 			iMotor4SpeedA := iEncoder4Val;
 			//ensure that the process isn't executed every single new scan cycle by using a boolean trigger
