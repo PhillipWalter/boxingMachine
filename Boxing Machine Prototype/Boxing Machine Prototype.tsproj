@@ -33,7 +33,7 @@
 		</System>
 		<Plc>
 			<Project GUID="{D47629D0-FB00-40E4-AF16-65200F4573D9}" Name="Machine Control" PrjFilePath="Machine Control\Machine Control.plcproj" TmcFilePath="Machine Control\Machine Control.tmc" ReloadTmc="true" AmsPort="851" FileArchiveSettings="#x000e" SymbolicMapping="true">
-				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Machine Control\Machine Control.tmc" TmcHash="{F5E2BEED-87D9-A2CD-14D2-39CC5990FE19}">
+				<Instance Id="#x08502000" TcSmClass="TComPlcObjDef" KeepUnrestoredLinks="2" TmcPath="Machine Control\Machine Control.tmc" TmcHash="{A18F351D-93FF-7911-5EC2-22B55152CE6C}">
 					<Name>Machine Control Instance</Name>
 					<CLSID ClassFactory="TcPlc30">{08500001-0000-0000-F000-000000000064}</CLSID>
 					<Vars VarGrpType="1">

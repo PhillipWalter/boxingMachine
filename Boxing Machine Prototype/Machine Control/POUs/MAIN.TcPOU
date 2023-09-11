@@ -3,35 +3,302 @@
   <POU Name="MAIN" Id="{61722ceb-acc8-4a94-a17e-a2b60d2331d1}" SpecialFunc="None">
     <Declaration><![CDATA[PROGRAM MAIN
 VAR
-
-	nSwitchCtrl		: BOOL := TRUE;
+	bSwitchCtrl		: BOOL := TRUE;
 	nRotateUpper	: WORD := 16#8000;
 	nRotateLower	: WORD := 16#01;
 	
+	//Variables for dynamically changing the devices spoken to over EtherCAT
+	uiSlaveAddr : UINT;
+	nDriveNum	: BYTE;
+	nDriveType	: BYTE;
+	//For the sake of demonstration I am going to employ a CASE switch for talking to the various drives when initializing...
+	iNumDrives	: UINT := 1;
+	iDriveType	: UINT := 123;
+	
+	//Hardware inputs
 	bEL1004_CH4 AT%I*	: BOOL;
+	stPlcDriveRef AT %I* : ST_PlcDriveRef;
+	
 	
 	nEL2008_value AT%Q*	: BYTE;
-
+	bInit1 : BOOL := FALSE;
+	bInit2 : BOOL := FALSE;
+	bInit3 : BOOL := FALSE;
+	bInit4 : BOOL := FALSE;
+	
+	//Function Block references
+	fbWriteCommandControl 	: FB_SoEWriteCommandControl_ByDriveRef;
+	bWriteCommand			: BOOL;	
 END_VAR
+
+VAR_INPUT
+	//Reference to the drive. The reference to the drive can be linked directly to the PLC in the System Manager. 
+	//To do this, an instance of the structure ST_PlcDriveRef must be allocated and the NetID must be converted from the byte array into a string. (Type: ST_DriveRef)
+	stDriveRef	: ST_DriveRef;
+	//Parameter number to which fbWriteCommandControl refers, e.g. "P_0_IDN + 23" for P-0-0023
+	nIdn		: WORD;
+	//Indicates, if a command should be prepared (eSoE_CmdControl_Set := 1), executed (eSoE_CmdControl_SetAndEnable := 3) or aborted (eSoE_CmdControl_Cancel := 0).
+	eCmdControl	: E_SoE_CmdControl;
+	//The function block is enabled via a positive edge at this input
+	bExecute	: BOOL;
+	//Maximum time (10 s) allowed for the execution of the function block.
+	tTimeout	: TIME := DEFAULT_ADS_TIMEOUT;	
+END_VAR
+
+VAR_OUTPUT
+	//This output is set when the function block is activated, and remains set until a feedback is received.
+	bBusy			: BOOL;
+	//This output is set after the bBusy output has been reset when an error occurs in the transmission of the command.
+	bError			: BOOL;
+	//In the case of a set bError output returns the ADS error code of the last executed command.
+	iAdsErrId		: UINT;
+	//In the case of a set bError output returns the Sercos error of the last executed command.
+	iSercosErrId	: UINT;
+END_VAR
+
 ]]></Declaration>
     <Implementation>
-      <ST><![CDATA[(*Program Example*)
+      <ST><![CDATA[(*This portion is for dynamic drive communication*)
+
+(*Drives have to be made contact with initially before anything can continue...*)
+
+// A __TRY __CATCH __FINALLY clause will be added for exception handling shortly...
+
+CASE iNumDrives OF //probably the conditional control function I like the most...
+//Setting up comms for the motion control needs
+	1:	IF NOT bInit1 THEN
+		
+		//change the Slave address
+		uiSlaveAddr := iNumDrives;
+		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+		//The following values have been preconfigured by the FB
+		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+	
+		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
+		
+		bInit1 := TRUE;//initialization completed
+		
+		END_IF
+	
+		END_IF
+		
+		IF bWriteCommand AND bInit1 THEN
+	
+			fbWriteCommandControl(
+				stDriveRef	:= stDriveRef,
+				bExecute	:= TRUE,
+				tTimeout	:= DEFAULT_ADS_TIMEOUT,
+				nIdn		:= P_0_IDN + 23,
+				eCmdControl := eCmdControl
+				);
+		IF NOT	fbWriteCommandControl.bBusy THEN
+			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
+			bWriteCommand := FALSE;			
+		END_IF
+		
+		END_IF
+		//increment for the next case...
+		iNumDrives := iNumDrives + 1;
+		
+	2:	IF NOT bInit2 THEN
+	
+		//change the Slave address
+		uiSlaveAddr := iNumDrives;
+		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+		//The following values have been preconfigured by the FB
+		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+	
+		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
+		
+		bInit2 := TRUE;//initialization completed
+		
+		END_IF
+	
+		END_IF
+		
+		IF bWriteCommand AND bInit2 THEN
+	
+			fbWriteCommandControl(
+				stDriveRef	:= stDriveRef,
+				bExecute	:= TRUE,
+				tTimeout	:= DEFAULT_ADS_TIMEOUT,
+				nIdn		:= P_0_IDN + 23,
+				eCmdControl := eCmdControl
+				);
+		IF NOT	fbWriteCommandControl.bBusy THEN
+			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
+			bWriteCommand := FALSE;			
+		END_IF
+		
+		END_IF
+		//increment for the next case...
+		iNumDrives := iNumDrives + 1;
+		
+		
+	
+	3:	IF NOT bInit3 THEN
+	
+		//change the Slave address
+		uiSlaveAddr := iNumDrives;
+		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+		//The following values have been preconfigured by the FB
+		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+	
+		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
+		
+		bInit3 := TRUE;//initialization completed
+		
+		END_IF
+	
+		END_IF
+		
+		IF bWriteCommand AND bInit3 THEN
+	
+			fbWriteCommandControl(
+				stDriveRef	:= stDriveRef,
+				bExecute	:= TRUE,
+				tTimeout	:= DEFAULT_ADS_TIMEOUT,
+				nIdn		:= P_0_IDN + 23,
+				eCmdControl := eCmdControl
+				);
+		IF NOT	fbWriteCommandControl.bBusy THEN
+			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
+			bWriteCommand := FALSE;			
+		END_IF
+		
+		END_IF
+		//increment for the next case...
+		iNumDrives := iNumDrives + 1;
+	
+	4:	IF NOT bInit4 THEN
+	
+		//change the Slave address
+		uiSlaveAddr := iNumDrives;
+		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+		//The following values have been preconfigured by the FB
+		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+	
+		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
+		
+		bInit4 := TRUE;//initialization completed
+		
+		END_IF
+	
+		END_IF
+		
+		IF bWriteCommand AND bInit4 THEN
+	
+			fbWriteCommandControl(
+				stDriveRef	:= stDriveRef,
+				bExecute	:= TRUE,
+				tTimeout	:= DEFAULT_ADS_TIMEOUT,
+				nIdn		:= P_0_IDN + 23,
+				eCmdControl := eCmdControl
+				);
+		IF NOT	fbWriteCommandControl.bBusy THEN
+			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
+			bWriteCommand := FALSE;			
+		END_IF
+		
+		END_IF
+		//increment for the next case...
+		iNumDrives := iNumDrives + 1;
+END_CASE
+
+
+
 
 IF bEL1004_CH4 THEN
-	IF nSwitchCtrl THEN
-		nSwitchCtrl := FALSE;
+	IF bSwitchCtrl THEN
+		bSwitchCtrl := FALSE;
 		nRotateLower := ROL(nRotateUpper, 2);
 		nRotateUpper := ROR(nRotateUpper, 2);
 		nEL2008_value := WORD_TO_BYTE(nRotateLower OR nRotateUpper);
 	END_IF
 ELSE
-		IF NOT nSwitchCtrl THEN
-			nSwitchCtrl := TRUE;
+		IF NOT bSwitchCtrl THEN
+			bSwitchCtrl := TRUE;
 		END_IF
 END_IF]]></ST>
     </Implementation>
     <LineIds Name="MAIN">
-      <LineId Id="42" Count="12" />
+      <LineId Id="239" Count="1" />
+      <LineId Id="166" Count="0" />
+      <LineId Id="431" Count="0" />
+      <LineId Id="433" Count="0" />
+      <LineId Id="430" Count="0" />
+      <LineId Id="167" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="246" Count="0" />
+      <LineId Id="248" Count="1" />
+      <LineId Id="281" Count="0" />
+      <LineId Id="278" Count="0" />
+      <LineId Id="280" Count="0" />
+      <LineId Id="247" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="113" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="111" Count="1" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="116" Count="0" />
+      <LineId Id="118" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="250" Count="0" />
+      <LineId Id="259" Count="1" />
+      <LineId Id="262" Count="11" />
+      <LineId Id="258" Count="0" />
+      <LineId Id="277" Count="0" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="276" Count="0" />
+      <LineId Id="193" Count="1" />
+      <LineId Id="282" Count="36" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="274" Count="1" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="209" Count="1" />
+      <LineId Id="319" Count="36" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="225" Count="1" />
+      <LineId Id="393" Count="36" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="70" Count="0" />
+      <LineId Id="245" Count="0" />
+      <LineId Id="244" Count="0" />
+      <LineId Id="126" Count="0" />
+      <LineId Id="43" Count="11" />
       <LineId Id="28" Count="0" />
     </LineIds>
   </POU>
