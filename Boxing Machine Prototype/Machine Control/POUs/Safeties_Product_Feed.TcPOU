@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="Safeties_Product_Feed" Id="{a586a5af-5cbf-479d-ae85-8208c3bde5b1}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Safeties_Product_Feed
+VAR_INPUT
+
+	//These will be initialized up until the program has confirmed that these safeties aren't triggered.
+	//This also serves as an IO test procedure...
+	bPhysicalSafetyFence1 : BOOL;
+	bPhysicalSafetyFence2 : BOOL;
+	bPhysicalSafetyFence3 : BOOL;
+	bPhysicalSafetyFence4 : BOOL;
+	bFenceNotCompromised     : BOOL;
+	//The proximity sensor responsible for checking if material is indeed present.
+	bMaterialPresent : BOOL;
+	//This is for the ADSLOGSTR to output a message to the user
+	msgCtrlMask  : DWORD;
+    msgFmtStr    : T_MaxString;
+    strArg       : T_MaxString;
+
+END_VAR
+
+VAR
+	
+	bSafetiesStartup : BOOL := FALSE;
+	//This is a real number for storing the value representin the length of product that has run...
+	fProductRun : REAL := GVL_VAR.fProductRun;
+	//These are sensors for checking the hight of the product being processed...
+	//If they become TRUE, THEN there is a production flow malfunction in terms of the raw material.
+	//They are also initialized to TRUE UNTIL proven functional.
+	bOpticSensor1 : BOOL := TRUE;
+	bOpticSensor2 : BOOL := TRUE;
+	bOpticSensor3 : BOOL := TRUE;
+	bOpticSensor4 : BOOL := TRUE;
+	bProductFlowCompromised : BOOL := TRUE;
+	bFieldCommsOK : BOOL := FALSE;
+
+	//Real variables
+	//Temperature of glue pot in degrees celsius
+	//The values are initialized in order to give the UI something to work with after immediate bootup
+	fGlueTemperature 	 	: REAL := GVL_VAR.fGlueTemperature;
+	fBoardOptic1 		 	: REAL := GVL_VAR.fBoardOptic1;
+	fBoardOptic2 		 	: REAL := GVL_VAR.fBoardOptic2;
+	fBoardOptic3 		 	: REAL := GVL_VAR.fBoardOptic3;
+	fBoardOptic4 		 	: REAL := GVL_VAR.fBoardOptic4;
+
+	//The REAL values of the motor's thermal characteristics can be obtained via EtherCAT comms.
+	fMotor1Thermal 			: REAL := GVL_VAR.fMotor1Thermal;
+	fMotor2Thermal 			: REAL := GVL_VAR.fMotor2Thermal;
+	fMotor3Thermal 			: REAL := GVL_VAR.fMotor3Thermal;
+	fMotor4Thermal 			: REAL := GVL_VAR.fMotor4Thermal;
+	
+	//This is where the parameters for checking the material highs and lows will be stored
+	fParametersOptic1 : REAL := GVL_VAR.fParametersOptic1;
+	fParametersOptic2 : REAL := GVL_VAR.fParametersOptic2;
+	fParametersOptic3 : REAL := GVL_VAR.fParametersOptic3;
+	fParametersOptic4 : REAL := GVL_VAR.fParametersOptic4;
+	
+	//Allowed variance of material
+	//This variable is for storing the allowed fluctiations of material movement...
+	fMaterialMinimum1 : REAL;
+	fMaterialMinimum2 : REAL;
+	fMaterialMinimum3 : REAL;
+	fMaterialMinimum4 : REAL;
+	
+	fMaterialMaximum1 : REAL;
+	fMaterialMaximum2 : REAL;
+	fMaterialMaximum3 : REAL;
+	fMaterialMaximum4 : REAL;
+	
+	//More ADSLOGSTR variable declarations
+	sDefectiveDevice : STRING;
+	strSFCErrorStep : STRING; (* Declaration*)
+    rtMessageOutput: R_TRIG;
+    bSFCError: BOOL;
+	udiAdsLogRes: DINT;
+	
+	cTryCond: INT;
+	
+	//Variables For the TRY exception Handler
+	nCounter1          : INT;
+    nCounter2          : INT;
+    nCounter_TRY1      : INT;
+    nCounter_TRY2      : INT;
+    nCounter_CATCH     : INT;    
+    nCounter_FINALLY   : INT;
+ 
+    exc                : __SYSTEM.ExceptionCode;
+    lastExc            : __SYSTEM.ExceptionCode;
+ 
+    pSample            : POINTER TO BOOL;
+    bVar               : BOOL;
+    nSample            : INT := 100;
+    nDivisor           : INT;
+END_VAR
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// If any of the safeties are triggered the operator MUST be prompted to a manual reset of the alarm condition.
+
+WHILE NOT bSafetiesStartup DO
+	//A TRUE value should be returned.
+	bFenceNotCompromised := NOT bPhysicalSafetyFence1 AND NOT bPhysicalSafetyFence2 AND NOT bPhysicalSafetyFence3 AND NOT bPhysicalSafetyFence4;
+__TRY
+//make contact with all of the EtherCAT devices to ensure proper comms to the devices is established
+//Initiate contact 
+		
+//If contact is successful =>
+		bFieldCommsOK := TRUE;
+__CATCH(exc);
+		//if some sort of error does occur, it should be caught and returned
+			rtMessageOutput(CLK := bSFCError);
+		IF rtMessageOutput.Q THEN
+    		udiAdsLogRes := ADSLOGSTR( msgCtrlMask := ADSLOG_MSGTYPE_ERROR OR ADSLOG_MSGTYPE_MSGBOX,
+			 msgFmtStr := 'PLC Msg.: Field Devices Communication Failure At The' + sDefectiveDevice + '%s',
+			 strArg := strSFCErrorStep);
+			 
+			// Exception logging
+    		lastExc := exc;
+    		F_SaveExceptionCode(excInput := exc);
+    		// Correct the faulty variable values
+    		IF (exc = __SYSTEM.ExceptionCode.RTSEXCPT_ACCESS_VIOLATION) AND (pSample = 0) THEN
+        		pSample  := ADR(bVar);
+ 			ELSIF ((exc = __SYSTEM.ExceptionCode.RTSEXCPT_DIVIDEBYZERO) OR (exc = __SYSTEM.ExceptionCode.RTSEXCPT_FPU_DIVIDEBYZERO)) AND (nDivisor = 0) THEN
+        		nDivisor := 1;
+    		END_IF
+	
+		END_IF;
+
+__FINALLY
+		//Else if all is well, send the first values to the end-nodes and receive the first values
+		//SAve the state of the communication status into the responsible booleans
+		//Return the global variables...
+		
+__ENDTRY;
+
+	
+
+END_WHILE
+
+WHILE bSafetiesStartup AND bMaterialPresent DO
+	
+//These instances return a boolean value... If TRUE is returned then all is well...
+//Should a FALSE be returned under any circumstances, THEN a "Product jammed" error must be logged
+//The sensors should be analogue in nature so as to return a formattible value. The formatted value would be somewhere in the mm range
+ 
+	bOpticSensor1 := fParametersOptic1 < fMaterialMaximum1 AND fParametersOptic1 > fMaterialMinimum1;
+	bOpticSensor2 := fParametersOptic2 < fMaterialMaximum2 AND fParametersOptic2 > fMaterialMinimum2;
+	bOpticSensor3 := fParametersOptic3 < fMaterialMaximum3 AND fParametersOptic3 > fMaterialMinimum3;
+	bOpticSensor4 := fParametersOptic4 < fMaterialMaximum4 AND fParametersOptic4 > fMaterialMinimum4;
+
+END_WHILE]]></ST>
+    </Implementation>
+    <LineIds Name="Safeties_Product_Feed">
+      <LineId Id="58" Count="0" />
+      <LineId Id="68" Count="1" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="142" Count="0" />
+      <LineId Id="175" Count="0" />
+      <LineId Id="177" Count="1" />
+      <LineId Id="176" Count="0" />
+      <LineId Id="148" Count="0" />
+      <LineId Id="150" Count="0" />
+      <LineId Id="164" Count="2" />
+      <LineId Id="169" Count="1" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="203" Count="2" />
+      <LineId Id="207" Count="4" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="163" Count="0" />
+      <LineId Id="153" Count="0" />
+      <LineId Id="149" Count="0" />
+      <LineId Id="151" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="172" Count="0" />
+      <LineId Id="152" Count="0" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="143" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="74" Count="0" />
+      <LineId Id="107" Count="0" />
+      <LineId Id="109" Count="0" />
+      <LineId Id="112" Count="0" />
+      <LineId Id="131" Count="1" />
+      <LineId Id="138" Count="1" />
+      <LineId Id="115" Count="3" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="113" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

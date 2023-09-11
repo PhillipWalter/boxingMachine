@@ -44,6 +44,20 @@ VAR_GLOBAL
 	iRawBoardOptic3  	 	: INT := 0;
 	iRawBoardOptic4 	 	: INT := 0;
 	
+	//Amount of times a motor's speed has undergone rectification
+	
+	iMotor1Rect : INT;
+	iMotor2Rect : INT;
+	iMotor3Rect : INT;
+	iMotor4Rect : INT;
+	
+	//Program cutt-off distances
+	//This keeps track of material distances if motors lose sync of their speed parameters
+	//This will be referenced in conjunction with the "Product Ready" flag which must be set BEFORE product is fed
+	//Yet IF product is fed, the precondition must remain true; 
+	fProductRun : REAL;
+	
+	
 	
 	//boolean variables
 	//As far as feasible the booleans will be initialized
@@ -57,7 +71,7 @@ VAR_GLOBAL
 	bSysParam1 			 	: BOOL := FALSE;
 	bSysParam2 			 	: BOOL := FALSE;
 	//Some IO information about the motor's state
-	bMotor1Running 		 	: BOOL :=FALSE;
+	bMotor1Running 		 	: BOOL := FALSE;
 	bMotor2Running 		 	: BOOL := FALSE;
 	bMotor3Running 		 	: BOOL := FALSE;
 	bMotor4Running 		 	: BOOL := FALSE;
@@ -107,6 +121,11 @@ VAR_GLOBAL
 	fMotor3Hysteresis		: REAL;
 	fMotor4Hysteresis		: REAL;
 	
+	//This is where the parameters for checking the material highs and lows will be stored
+	fParametersOptic1 : REAL;
+	fParametersOptic2 : REAL;
+	fParametersOptic3 : REAL;
+	fParametersOptic4 : REAL;
 	
 END_VAR]]></Declaration>
   </GVL>

@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.12">
+  <POU Name="F_SaveExceptionCode" Id="{8ffa827d-75e0-4a59-a2d0-1004c18d2202}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION F_SaveExceptionCode
+VAR_INPUT
+	excInput : __SYSTEM.ExceptionCode;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF GVL_Exceptions.nExcIndex <= GVL_Exceptions.cMaxExc THEN
+    GVL_Exceptions.aExceptionHistory[GVL_Exceptions.nExcIndex] := excInput;
+    GVL_Exceptions.nExcIndex := GVL_Exceptions.nExcIndex + 1;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="F_SaveExceptionCode">
+      <LineId Id="9" Count="2" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

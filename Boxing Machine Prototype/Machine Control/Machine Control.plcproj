@@ -18,6 +18,10 @@
     <LibraryReferences>{c37c7367-5360-48d3-ba0d-4abdd84c178d}</LibraryReferences>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="GVLs\GVL_Exceptions.TcGVL">
+      <SubType>Code</SubType>
+      <LinkAlways>true</LinkAlways>
+    </Compile>
     <Compile Include="GVLs\GVL_VAR.TcGVL">
       <SubType>Code</SubType>
       <LinkAlways>true</LinkAlways>
@@ -25,10 +29,16 @@
     <Compile Include="PlcTask.TcTTO">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="POUs\F_SaveExceptionCode.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="POUs\Motors_Speed_IO.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\Motor_Speed_PID.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs\Safeties_Product_Feed.TcPOU">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="POUs\SpeedControl_SIM.TcPOU">
