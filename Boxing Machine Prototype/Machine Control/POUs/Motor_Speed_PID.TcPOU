@@ -26,10 +26,14 @@ VAR
 	fMotor2AdjustFactor : REAL := GVL_VAR.fMotor2AdjustFactor;
 	fMotor3AdjustFactor : REAL := GVL_VAR.fMotor3AdjustFactor;
 	fMotor4AdjustFactor : REAL := GVL_VAR.fMotor4AdjustFactor;
-
 	
-END_VAR
-]]></Declaration>
+	//Reference for the varioous drives' addresses
+	//Reference to the drive. The reference to the drive can be linked directly to the PLC in the System Manager.
+	//To do this, an instance of the structure ST_PlcDriveRef must be allocated and the 
+	//NetID must be converted from the byte array into a string
+	
+	
+END_VAR]]></Declaration>
     <Implementation>
       <ST><![CDATA[//Only allow the activation of the speed control segment of the program if the motors have actually started:
 
@@ -50,7 +54,10 @@ WHILE GVL_VAR.bMotorsHaveStarted DO
 		fMotor1AdjustFactor := fKp * (iSetGlobalSpeed - GVL_VAR.iMotor1GlobalSpeed);	
 		//Remember to include a function for keeping the hysteresis in mind.
 		GVL_VAR.fMotor1AdjustFactor := fMotor1AdjustFactor - GVL_VAR.fMotor1Hysteresis;
-		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed	
+		//increase the speed and after making sure the speed doesn't exceed the global set variable for the overall speed
+
+
+	
 		//Reset the booleans responsible for activating this function
 		GVL_VAR.bDecreaseSpeed1 := FALSE;
 		GVL_VAR.bIncreaseSpeed1 := FALSE;
@@ -144,6 +151,8 @@ END_WHILE]]></ST>
       <LineId Id="179" Count="0" />
       <LineId Id="177" Count="0" />
       <LineId Id="185" Count="0" />
+      <LineId Id="262" Count="1" />
+      <LineId Id="259" Count="0" />
       <LineId Id="46" Count="0" />
       <LineId Id="196" Count="0" />
       <LineId Id="198" Count="0" />

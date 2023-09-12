@@ -46,10 +46,10 @@ VAR_GLOBAL
 	
 	//Amount of times a motor's speed has undergone rectification
 	
-	iMotor1Rect : INT;
-	iMotor2Rect : INT;
-	iMotor3Rect : INT;
-	iMotor4Rect : INT;
+	iMotor1Rect				: INT;
+	iMotor2Rect 			: INT;
+	iMotor3Rect 			: INT;
+	iMotor4Rect 			: INT;
 	
 	//Program cutt-off distances
 	//This keeps track of material distances if motors lose sync of their speed parameters
@@ -57,6 +57,10 @@ VAR_GLOBAL
 	//Yet IF product is fed, the precondition must remain true; 
 	fProductRun : REAL;
 	
+	//Motor References VIA EtherCAT Comms methodology
+	uiSlaveAddr : UINT;
+	nDriveNum	: BYTE;
+	nDriveType	: BYTE;
 	
 	
 	//boolean variables
@@ -127,6 +131,9 @@ VAR_GLOBAL
 	fParametersOptic3 : REAL;
 	fParametersOptic4 : REAL;
 	
-END_VAR]]></Declaration>
+END_VAR
+
+
+]]></Declaration>
   </GVL>
 </TcPlcObject>

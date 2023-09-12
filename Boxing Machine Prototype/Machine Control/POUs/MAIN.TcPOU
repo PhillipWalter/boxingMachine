@@ -21,14 +21,49 @@ VAR
 	
 	
 	nEL2008_value AT%Q*	: BYTE;
+	//Comms Retry Timer
+	tRetryComms		: TON;
+	bTimerDone		: BOOL;
+	
+	//Booleans for circulating the comms for the drives 
 	bInit1 : BOOL := FALSE;
 	bInit2 : BOOL := FALSE;
 	bInit3 : BOOL := FALSE;
 	bInit4 : BOOL := FALSE;
 	
+	//Log the amount of times the communications have failed:
+	iDriveCommsFailure1 : INT := 0;
+	iDriveCommsFailure2 : INT := 0;
+	iDriveCommsFailure3 : INT := 0;
+	iDriveCommsFailure4 : INT := 0;
+	
+	//Booleans for capturing drive failures
+	bBadDriveComms1 : BOOL := FALSE;
+	bBadDriveComms2 : BOOL := FALSE;
+	bBadDriveComms3 : BOOL := FALSE;
+	bBadDriveComms4 : BOOL := FALSE;
+	
+	//bHaltCommRetries
+	aHaltCommsRetries : ARRAY[0..iNumDrives] OF BOOL;
+	i : UINT; // for use in the for loop
+	bDoHaltCommsInitOnce : BOOL := FALSE;
+	bCommsError : BOOL := FALSE;
+	bHoldAllComms : BOOL := FALSE;
+	
 	//Function Block references
 	fbWriteCommandControl 	: FB_SoEWriteCommandControl_ByDriveRef;
 	bWriteCommand			: BOOL;	
+	
+	//Exception Handling Variables
+	exception 		: __SYSTEM.ExceptionCode;
+	lastException 	: __SYSTEM.ExceptionCode;
+	pSample			: POINTER TO BOOL;
+	bVar			: BOOL;
+	nSample			: INT := 100;
+	nDivisor		: INT;
+	iNumDrives_CATCH	: INT;
+
+	
 END_VAR
 
 VAR_INPUT
@@ -61,32 +96,48 @@ END_VAR
       <ST><![CDATA[(*This portion is for dynamic drive communication*)
 
 (*Drives have to be made contact with initially before anything can continue...*)
+//Start of the array values for use in the comms logic
+IF NOT bDoHaltCommsInitOnce THEN
+FOR i := 0 TO iNumDrives DO
+	aHaltCommsRetries[i] := FALSE;
+END_FOR
+END_IF
 
+//Loop through the comms to determine if any error occurs...
+FOR i := 0 TO iNumDrives DO
+
+bCommsError := aHaltCommsRetries[0] = TRUE;
+IF NOT bCommsError THEN
+	bHoldAllComms := TRUE;
+END_IF
+END_FOR
+
+IF NOT bHoldAllComms THEN
 // A __TRY __CATCH __FINALLY clause will be added for exception handling shortly...
-
 CASE iNumDrives OF //probably the conditional control function I like the most...
 //Setting up comms for the motion control needs
-	1:	IF NOT bInit1 THEN
-		
-		//change the Slave address
-		uiSlaveAddr := iNumDrives;
-		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
-		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
-		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
-		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+	1: 	__TRY	
+	
+		IF NOT bInit1 AND NOT aHaltCommsRetries[iNumDrives] THEN
 
-		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
-		//The following values have been preconfigured by the FB
-		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
-		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
-		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+			//change the Slave address
+			uiSlaveAddr := iNumDrives;
+			GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+			//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+			GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+			GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+			stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+			//The following values have been preconfigured by the FB
+			stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+			stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+			stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
 	
 		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
 		
-		bInit1 := TRUE;//initialization completed
+			bInit1 := TRUE;//initialization completed
 		
 		END_IF
-	
 		END_IF
 		
 		IF bWriteCommand AND bInit1 THEN
@@ -94,7 +145,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 			fbWriteCommandControl(
 				stDriveRef	:= stDriveRef,
 				bExecute	:= TRUE,
-				tTimeout	:= DEFAULT_ADS_TIMEOUT,
+				tTimeout	:= DEFAULT_ADS_TIMEOUT,//possible ADSLOGSTR correlation (ADS)
 				nIdn		:= P_0_IDN + 23,
 				eCmdControl := eCmdControl
 				);
@@ -102,29 +153,58 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
 			bWriteCommand := FALSE;			
 		END_IF
-		
 		END_IF
-		//increment for the next case...
-		iNumDrives := iNumDrives + 1;
-		
-	2:	IF NOT bInit2 THEN
 	
-		//change the Slave address
-		uiSlaveAddr := iNumDrives;
-		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
-		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
-		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
-		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+		__CATCH(exception)//the variable 'exception' is used to store the error code
+	
+			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
+			F_SaveExceptionCode.excInput := exception;
+			iDriveCommsFailure1 := UINT_TO_INT(iNumDrives);
+			bBadDriveComms1 := TRUE;
 
-		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
-		//The following values have been preconfigured by the FB
-		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
-		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
-		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
+			
+			//If the value that is stored is ever to become TRUE, the code may not be run again
+			aHaltCommsRetries[iNumDrives] := iDriveCommsFailure1 = 5;
+			//increment for the next case...
+		IF	NOT bBadDriveComms1 AND iDriveCommsFailure1 < 5 THEN
+			iNumDrives := iNumDrives + 1;
+			iDriveCommsFailure1 := 0;
+			
+			
+		ELSE
+			//Add in a retry clause for the sake of establishing comms after initial error
+			tRetryComms(IN := TRUE, PT:=T#500MS, Q=> btimerDone);
+		IF tRetryComms.Q THEN
+			//reinitialize the first drive comms attempt
+			bInit1 := FALSE; 
+			iNumDrives := 1;
+			tRetryComms.IN := FALSE;		
+		END_IF
+		END_IF
+	
+ 		__ENDTRY
+		
+	2:	__TRY
+
+		IF NOT bInit2 THEN
+	
+			//change the Slave address
+			uiSlaveAddr := iNumDrives;
+			GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+			//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+			GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+			GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+			stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+			//The following values have been preconfigured by the FB
+			stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+			stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+			stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
 	
 		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
 		
-		bInit2 := TRUE;//initialization completed
+			bInit2 := TRUE;//initialization completed
 		
 		END_IF
 	
@@ -143,31 +223,56 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
 			bWriteCommand := FALSE;			
 		END_IF
-		
 		END_IF
-		//increment for the next case...
-		iNumDrives := iNumDrives + 1;
 		
-		
+		__CATCH(exception)//the variable 'exception' is used to store the error code
 	
-	3:	IF NOT bInit3 THEN
-	
-		//change the Slave address
-		uiSlaveAddr := iNumDrives;
-		GVL_VAR.uiSlaveAddr := uiSlaveAddr;
-		//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
-		GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
-		GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
+			F_SaveExceptionCode.excInput := exception;
+			iDriveCommsFailure2 := UINT_TO_INT(iNumDrives);
+			bBadDriveComms2 := TRUE;
 
-		stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
-		//The following values have been preconfigured by the FB
-		stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
-		stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
-		stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
+		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
+
+				//increment for the next case...
+		IF	NOT bBadDriveComms2 AND iDriveCommsFailure2 <= 5 THEN
+			iNumDrives := iNumDrives + 1;
+			iDriveCommsFailure2 := 0;
+		ELSE
+			//Add in a retry clause for the sake of establishing comms after initial error
+			tRetryComms(IN := TRUE, PT:=T#500MS, Q=> btimerDone);
+		IF tRetryComms.Q THEN
+			//reinitialize the first drive comms attempt
+			bInit2 := FALSE; 
+			iNumDrives := 2;
+			tRetryComms.IN := FALSE;		
+		END_IF
+		END_IF
+	
+ 		__ENDTRY
+		
+		
+	
+	3:	__TRY
+
+		IF NOT bInit3 THEN
+	
+			//change the Slave address
+			uiSlaveAddr := iNumDrives;
+			GVL_VAR.uiSlaveAddr := uiSlaveAddr;
+			//The structure created for the ST_DriveRef expects a Byte format...hence the conversion of the ints...
+			GVL_VAR.nDriveNum	:= INT_TO_BYTE(iNumDrives);
+			GVL_VAR.nDriveType	:= INT_TO_BYTE(iDriveType);
+
+			stDriveRef.sNetId		:=	F_CreateAmsNetId(stPlcDriveRef.aNetId);
+			//The following values have been preconfigured by the FB
+			stDriveRef.nSlaveAddr	:=	GVL_VAR.uiSlaveAddr;
+			stDriveRef.nDriveNo		:=	GVL_VAR.nDriveNum;
+			stDriveRef.nDriveType	:=	GVL_VAR.nDriveType;
 	
 		IF (stDriveRef.sNetId <> '') AND (stDriveRef.nSlaveAddr <> 0) THEN
 		
-		bInit3 := TRUE;//initialization completed
+			bInit3 := TRUE;//initialization completed
 		
 		END_IF
 	
@@ -186,12 +291,39 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
 			bWriteCommand := FALSE;			
 		END_IF
-		
 		END_IF
-		//increment for the next case...
-		iNumDrives := iNumDrives + 1;
+
+		__CATCH(exception)//the variable 'exception' is used to store the error code
 	
-	4:	IF NOT bInit4 THEN
+			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
+			F_SaveExceptionCode.excInput := exception;
+			iDriveCommsFailure3 := UINT_TO_INT(iNumDrives);
+			bBadDriveComms3 := TRUE;
+
+		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
+
+				//increment for the next case...
+		IF	NOT bBadDriveComms3 AND iDriveCommsFailure3 <= 5 THEN
+			iNumDrives := iNumDrives + 1;
+			iDriveCommsFailure1 := 0;
+		ELSE
+			//Add in a retry clause for the sake of establishing comms after initial error
+			tRetryComms(IN := TRUE, PT:=T#500MS, Q=> btimerDone);
+		IF tRetryComms.Q THEN
+			//reinitialize the first drive comms attempt
+			bInit3 := FALSE; 
+			iNumDrives := 3;
+			tRetryComms.IN := FALSE;		
+		END_IF
+		END_IF
+	
+ 		__ENDTRY
+		
+
+	
+	4:	__TRY
+
+		IF NOT bInit4 THEN
 	
 		//change the Slave address
 		uiSlaveAddr := iNumDrives;
@@ -226,13 +358,37 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 		IF NOT	fbWriteCommandControl.bBusy THEN
 			fbWriteCommandControl(stDriveRef := stDriveRef, bExecute := FALSE);
 			bWriteCommand := FALSE;			
+		END_IF	
 		END_IF
-		
-		END_IF
-		//increment for the next case...
-		iNumDrives := iNumDrives + 1;
-END_CASE
 
+		__CATCH(exception)//the variable 'exception' is used to store the error code
+	
+			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
+			F_SaveExceptionCode.excInput := exception;
+			iDriveCommsFailure4 := UINT_TO_INT(iNumDrives);
+			bBadDriveComms4 := TRUE;
+
+		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
+
+				//increment for the next case...
+		IF	NOT bBadDriveComms4 AND iDriveCommsFailure4 <= 5 THEN
+			iNumDrives := iNumDrives + 1;
+			iDriveCommsFailure4 := 0;
+		ELSE
+			//Add in a retry clause for the sake of establishing comms after initial error
+			tRetryComms(IN := TRUE, PT:=T#500MS, Q=> btimerDone);
+		IF tRetryComms.Q THEN
+			//reinitialize the first drive comms attempt
+			bInit4 := FALSE; 
+			iNumDrives := 4;
+			tRetryComms.IN := FALSE;		
+		END_IF
+		END_IF
+	
+ 		__ENDTRY
+
+END_CASE
+END_IF
 
 
 
@@ -252,11 +408,22 @@ END_IF]]></ST>
     <LineIds Name="MAIN">
       <LineId Id="239" Count="1" />
       <LineId Id="166" Count="0" />
+      <LineId Id="660" Count="0" />
+      <LineId Id="646" Count="1" />
+      <LineId Id="656" Count="1" />
       <LineId Id="431" Count="0" />
+      <LineId Id="666" Count="0" />
+      <LineId Id="662" Count="0" />
+      <LineId Id="667" Count="1" />
+      <LineId Id="663" Count="0" />
+      <LineId Id="670" Count="2" />
+      <LineId Id="661" Count="0" />
+      <LineId Id="678" Count="0" />
+      <LineId Id="677" Count="0" />
       <LineId Id="433" Count="0" />
-      <LineId Id="430" Count="0" />
       <LineId Id="167" Count="0" />
       <LineId Id="68" Count="1" />
+      <LineId Id="490" Count="1" />
       <LineId Id="71" Count="0" />
       <LineId Id="246" Count="0" />
       <LineId Id="248" Count="1" />
@@ -273,26 +440,65 @@ END_IF]]></ST>
       <LineId Id="116" Count="0" />
       <LineId Id="118" Count="1" />
       <LineId Id="117" Count="0" />
-      <LineId Id="115" Count="0" />
       <LineId Id="72" Count="0" />
       <LineId Id="250" Count="0" />
       <LineId Id="259" Count="1" />
-      <LineId Id="262" Count="11" />
+      <LineId Id="262" Count="10" />
       <LineId Id="258" Count="0" />
-      <LineId Id="277" Count="0" />
-      <LineId Id="191" Count="0" />
+      <LineId Id="523" Count="0" />
+      <LineId Id="495" Count="0" />
+      <LineId Id="492" Count="0" />
+      <LineId Id="496" Count="2" />
+      <LineId Id="555" Count="0" />
+      <LineId Id="539" Count="0" />
+      <LineId Id="494" Count="0" />
+      <LineId Id="653" Count="1" />
+      <LineId Id="559" Count="0" />
+      <LineId Id="540" Count="2" />
+      <LineId Id="558" Count="0" />
+      <LineId Id="652" Count="0" />
+      <LineId Id="651" Count="0" />
+      <LineId Id="499" Count="0" />
+      <LineId Id="529" Count="1" />
+      <LineId Id="545" Count="0" />
+      <LineId Id="544" Count="0" />
+      <LineId Id="557" Count="0" />
+      <LineId Id="543" Count="0" />
+      <LineId Id="547" Count="0" />
+      <LineId Id="556" Count="0" />
+      <LineId Id="501" Count="1" />
+      <LineId Id="493" Count="0" />
       <LineId Id="276" Count="0" />
-      <LineId Id="193" Count="1" />
-      <LineId Id="282" Count="36" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="586" Count="0" />
+      <LineId Id="585" Count="0" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="282" Count="33" />
+      <LineId Id="317" Count="0" />
+      <LineId Id="587" Count="0" />
+      <LineId Id="561" Count="23" />
       <LineId Id="192" Count="0" />
       <LineId Id="274" Count="1" />
       <LineId Id="207" Count="0" />
-      <LineId Id="209" Count="1" />
-      <LineId Id="319" Count="36" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="616" Count="0" />
+      <LineId Id="615" Count="0" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="319" Count="33" />
+      <LineId Id="354" Count="0" />
+      <LineId Id="590" Count="24" />
+      <LineId Id="588" Count="0" />
       <LineId Id="208" Count="0" />
+      <LineId Id="589" Count="0" />
       <LineId Id="223" Count="0" />
-      <LineId Id="225" Count="1" />
-      <LineId Id="393" Count="36" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="645" Count="0" />
+      <LineId Id="644" Count="0" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="393" Count="33" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="619" Count="24" />
+      <LineId Id="617" Count="0" />
       <LineId Id="224" Count="0" />
       <LineId Id="70" Count="0" />
       <LineId Id="245" Count="0" />
