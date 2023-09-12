@@ -101,16 +101,18 @@ IF NOT bDoHaltCommsInitOnce THEN
 FOR i := 0 TO iNumDrives DO
 	aHaltCommsRetries[i] := FALSE;
 END_FOR
+	bDoHaltCommsInitOnce := TRUE;
 END_IF
 
 //Loop through the comms to determine if any error occurs...
+IF NOT bHoldAllComms THEN
 FOR i := 0 TO iNumDrives DO
-
 bCommsError := aHaltCommsRetries[0] = TRUE;
-IF NOT bCommsError THEN
+IF bCommsError THEN
 	bHoldAllComms := TRUE;
 END_IF
 END_FOR
+END_IF
 
 IF NOT bHoldAllComms THEN
 // A __TRY __CATCH __FINALLY clause will be added for exception handling shortly...
@@ -235,7 +237,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
 
 				//increment for the next case...
-		IF	NOT bBadDriveComms2 AND iDriveCommsFailure2 <= 5 THEN
+		IF	NOT bBadDriveComms2 AND iDriveCommsFailure2 < 5 THEN
 			iNumDrives := iNumDrives + 1;
 			iDriveCommsFailure2 := 0;
 		ELSE
@@ -303,7 +305,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
 
 				//increment for the next case...
-		IF	NOT bBadDriveComms3 AND iDriveCommsFailure3 <= 5 THEN
+		IF	NOT bBadDriveComms3 AND iDriveCommsFailure3 < 5 THEN
 			iNumDrives := iNumDrives + 1;
 			iDriveCommsFailure1 := 0;
 		ELSE
@@ -371,7 +373,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
 
 				//increment for the next case...
-		IF	NOT bBadDriveComms4 AND iDriveCommsFailure4 <= 5 THEN
+		IF	NOT bBadDriveComms4 AND iDriveCommsFailure4 < 5 THEN
 			iNumDrives := iNumDrives + 1;
 			iDriveCommsFailure4 := 0;
 		ELSE
@@ -411,13 +413,16 @@ END_IF]]></ST>
       <LineId Id="660" Count="0" />
       <LineId Id="646" Count="1" />
       <LineId Id="656" Count="1" />
+      <LineId Id="680" Count="0" />
       <LineId Id="431" Count="0" />
       <LineId Id="666" Count="0" />
       <LineId Id="662" Count="0" />
-      <LineId Id="667" Count="1" />
+      <LineId Id="681" Count="0" />
+      <LineId Id="667" Count="0" />
       <LineId Id="663" Count="0" />
       <LineId Id="670" Count="2" />
       <LineId Id="661" Count="0" />
+      <LineId Id="682" Count="0" />
       <LineId Id="678" Count="0" />
       <LineId Id="677" Count="0" />
       <LineId Id="433" Count="0" />
