@@ -107,7 +107,7 @@ END_IF
 //Loop through the comms to determine if any error occurs...
 IF NOT bHoldAllComms THEN
 FOR i := 0 TO iNumDrives DO
-bCommsError := aHaltCommsRetries[0] = TRUE;
+bCommsError := aHaltCommsRetries[i] = TRUE;
 IF bCommsError THEN
 	bHoldAllComms := TRUE;
 END_IF
