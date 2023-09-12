@@ -161,7 +161,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 	
 			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
 			F_SaveExceptionCode.excInput := exception;
-			iDriveCommsFailure1 := UINT_TO_INT(iNumDrives);
+			iDriveCommsFailure1 := iDriveCommsFailure1 + 1;
 			bBadDriveComms1 := TRUE;
 
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
@@ -231,7 +231,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 	
 			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
 			F_SaveExceptionCode.excInput := exception;
-			iDriveCommsFailure2 := UINT_TO_INT(iNumDrives);
+			iDriveCommsFailure2 := iDriveCommsFailure2 + 1;
 			bBadDriveComms2 := TRUE;
 
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
@@ -299,7 +299,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 	
 			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
 			F_SaveExceptionCode.excInput := exception;
-			iDriveCommsFailure3 := UINT_TO_INT(iNumDrives);
+			iDriveCommsFailure3 := iDriveCommsFailure3 + 1;
 			bBadDriveComms3 := TRUE;
 
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
@@ -367,7 +367,7 @@ CASE iNumDrives OF //probably the conditional control function I like the most..
 	
 			iNumDrives_CATCH	:= iNumDrives_CATCH +1;
 			F_SaveExceptionCode.excInput := exception;
-			iDriveCommsFailure4 := UINT_TO_INT(iNumDrives);
+			iDriveCommsFailure4 := iDriveCommsFailure4 + 1;
 			bBadDriveComms4 := TRUE;
 
 		__FINALLY // The __FINALLY clause will always execute irrespective of the previous commands' success
